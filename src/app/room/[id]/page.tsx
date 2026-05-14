@@ -6,7 +6,7 @@ import { getUser, authHeaders } from '@/store/authStore'
 import { useSocket, type DealingState } from '@/hooks/useSocket'
 import WhotCard, { CardBack } from '@/components/game/WhotCard'
 import type { Card } from '@/types/game'
-import { cardMatches, isActionCard } from '@/lib/deck'
+import { cardMatches } from '@/lib/deck'
 
 interface RoomInfo {
   id: string; inviteCode: string; status: string; maxPlayers: number
@@ -156,7 +156,6 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   function handlePlayCard(card: Card) {
     const top = snapshot?.discardTop
     if (!top || !cardMatches(card, top)) return
-    if (handSnap.length === 1 && isActionCard(card)) return
     playCard(card)
   }
 
@@ -368,13 +367,22 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   // ACTIVE GAME
   const opponents = snapshot?.players.filter((p) => p.userId !== user.id) ?? []
   const validCards = top && !dealing
-    ? handSnap.filter((c) => cardMatches(c, top) && !(handSnap.length === 1 && isActionCard(c)))
+    ? handSnap.filter((c) => cardMatches(c, top))
     : []
   const drawPileCount = snapshot?.drawPileCount ?? 0
   const deckLayers = drawPileCount >= 30 ? 3 : drawPileCount >= 15 ? 2 : drawPileCount >= 5 ? 1 : 0
 
   return (
     <div className="game-screen">
+      {/* Rotate to landscape prompt — hidden by CSS in landscape */}
+      <div className="rotate-prompt">
+        <div style={{ fontSize: 56 }}>↻</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--gold-lt)' }}>Rotate your phone</div>
+        <div style={{ fontSize: 14, color: 'var(--cream-60)', maxWidth: 240 }}>
+          LastCard plays best in landscape mode. Turn your phone sideways to play.
+        </div>
+      </div>
+
       <div className="game-inner">
 
         {/* TOP — Opponents strip */}
@@ -383,33 +391,46 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           borderBottom: '1px solid rgba(245,239,224,.08)',
           display: 'flex',
           alignItems: 'center',
-          gap: 20,
-          padding: '6px 16px',
+          justifyContent: 'center',
+          gap: 28,
+          padding: '8px 20px',
           overflowX: 'auto',
         }}>
           {opponents.map((opp) => {
             const isOppTurn = opp.userId === snapshot?.currentPlayerId
             return (
-              <div key={opp.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+              <div key={opp.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                {/* Avatar */}
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--card-back)',
-                  border: isOppTurn ? '2px solid var(--gold)' : '2px solid rgba(245,239,224,.15)',
+                  width: 46, height: 46, borderRadius: '50%',
+                  background: isOppTurn ? 'var(--gold)' : 'var(--card-back)',
+                  border: isOppTurn ? '2.5px solid var(--gold-lt)' : '2px solid rgba(245,239,224,.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 15, fontWeight: 700, color: 'var(--cream)',
-                  boxShadow: isOppTurn ? '0 0 10px var(--gold-glow)' : 'none',
-                  transition: 'border 200ms, box-shadow 200ms',
+                  fontSize: 18, fontWeight: 800,
+                  color: isOppTurn ? '#1a0d00' : 'var(--cream)',
+                  boxShadow: isOppTurn ? '0 0 16px var(--gold-glow)' : 'none',
+                  transition: 'all 200ms',
                 }}>
                   {opp.username[0].toUpperCase()}
                 </div>
-                <p style={{ fontSize: 10, color: 'var(--cream-60)', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {/* Username */}
+                <p style={{ fontSize: 11, color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isOppTurn ? 700 : 400 }}>
                   {opp.username}
                 </p>
-                <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, color: opp.cardCount <= 2 ? 'var(--illegal)' : 'var(--cream)', fontFamily: "'Bricolage Grotesque', system-ui, sans-serif" }}>
+                {/* Card count — big & bold */}
+                <div style={{
+                  fontSize: 36, fontWeight: 800, lineHeight: 1,
+                  color: opp.cardCount <= 2 ? 'var(--illegal)' : opp.cardCount <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
+                  fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                }}>
                   {opp.cardCount}
                 </div>
                 {opp.lastCardShown && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--illegal)', letterSpacing: .5 }}>LAST!</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, color: '#fff',
+                    background: 'var(--illegal)', borderRadius: 4,
+                    padding: '1px 5px', letterSpacing: .5,
+                  }}>LAST!</span>
                 )}
               </div>
             )
@@ -638,11 +659,26 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           padding: '6px 0 0',
           overflow: 'hidden',
         }}>
-          <p style={{ fontSize: 11, color: 'var(--cream-35)', marginBottom: 2 }}>
-            {handSnap.length} card{handSnap.length !== 1 ? 's' : ''}
-          </p>
+          {/* Card count — big and visible */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{
+              fontSize: 28, fontWeight: 800, lineHeight: 1,
+              fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+              color: handSnap.length <= 2 ? 'var(--illegal)' : handSnap.length <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
+            }}>
+              {handSnap.length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--cream-35)', fontWeight: 600 }}>
+              card{handSnap.length !== 1 ? 's' : ''}
+            </span>
+            {isMyTurn && (
+              <span className="pulse-slow" style={{ fontSize: 11, color: 'var(--gold-lt)', fontWeight: 700 }}>
+                — your turn
+              </span>
+            )}
+          </div>
 
-          {/* Scrollable spread — each card fully visible, slight arc */}
+          {/* Scrollable spread — slight arc, adaptive overlap */}
           <div style={{
             flex: 1,
             width: '100%',
@@ -650,8 +686,8 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             overflowY: 'visible',
             display: 'flex',
             alignItems: 'flex-end',
-            justifyContent: handSnap.length <= 6 ? 'center' : 'flex-start',
-            padding: '28px 20px 10px',
+            justifyContent: handSnap.length <= 5 ? 'center' : 'flex-start',
+            padding: '20px 20px 8px',
             gap: 0,
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
@@ -659,15 +695,13 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             {handSnap.map((card, i) => {
               const total = handSnap.length
               const midIndex = (total - 1) / 2
-              // Gentle arc: max ±12° total spread across the hand
-              const maxDeg = Math.min(12, total * 1.8)
+              const maxDeg = Math.min(10, total * 1.5)
               const rotation = total > 1 ? ((i - midIndex) / (midIndex || 1)) * maxDeg : 0
-              // Cards at edges dip slightly, centre is highest
-              const arcY = Math.abs(i - midIndex) * 3
+              const arcY = Math.abs(i - midIndex) * 2.5
               const isHov = hoveredCardIdx === i
               const isPlayable = isMyTurn && validCards.some((c) => c.suit === card.suit && c.number === card.number)
-              // Small overlap: show ~60px of each 72px card; last card fully shown
-              const overlap = total > 1 ? -14 : 0
+              // Adaptive overlap: spread cards more when few, tighter when many
+              const overlap = total <= 4 ? 6 : total <= 7 ? -4 : total <= 10 ? -10 : -16
 
               return (
                 <div
@@ -676,7 +710,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                   style={{
                     flexShrink: 0,
                     marginLeft: i > 0 ? overlap : 0,
-                    transform: `rotate(${rotation}deg) translateY(${isHov ? -36 : arcY}px)`,
+                    transform: `rotate(${rotation}deg) translateY(${isHov ? -40 : arcY}px)`,
                     transformOrigin: 'bottom center',
                     transition: 'transform 180ms cubic-bezier(.22,.68,0,1.2)',
                     zIndex: isHov ? 200 : i + 1,

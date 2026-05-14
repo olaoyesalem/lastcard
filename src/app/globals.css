@@ -217,7 +217,27 @@ body {
 .badge-dim   { background: rgba(245,239,224,.08); color: var(--cream-60) }
 
 /* ── Game board — 3-row flex ─────────────────────────────── */
-.rotate-prompt { display: none }
+
+/* Rotate prompt — full screen on mobile portrait */
+.rotate-prompt {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0F4C3A;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: var(--cream);
+  text-align: center;
+  padding: 32px;
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+  .game-screen .rotate-prompt { display: flex }
+  .game-screen .game-inner   { display: none }
+}
 
 .game-screen {
   width: 100dvw;
@@ -225,16 +245,15 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Emerald table surface */
   background:
     radial-gradient(ellipse at center, transparent 40%, rgba(5,20,14,.55) 100%),
     #0F4C3A;
 }
 
-/* Cap play area on wide screens */
+/* Cap play area — wider for landscape */
 .game-inner {
   width: 100%;
-  max-width: 480px;
+  max-width: 640px;
   margin: 0 auto;
   height: 100%;
   display: flex;
@@ -244,8 +263,8 @@ body {
 
 .game-opponents {
   flex: 0 0 auto;
-  min-height: 78px;
-  max-height: 105px;
+  min-height: 90px;
+  max-height: 130px;
 }
 
 .game-center {
@@ -255,7 +274,13 @@ body {
 }
 
 .game-hand {
-  flex: 0 0 210px;
+  flex: 0 0 200px;
+}
+
+/* Compact landscape on small screens */
+@media (orientation: landscape) and (max-height: 460px) {
+  .game-opponents { min-height: 76px; max-height: 100px }
+  .game-hand      { flex: 0 0 160px }
 }
 
 /* ── Hide scrollbar on hand row ─────────────────────────── */
