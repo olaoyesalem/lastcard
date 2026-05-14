@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email already registered. Please sign in.' }, { status: 409 })
   }
 
-  // Check if username is taken by a different (verified) account
+  // Check if username is taken by any account with a different email
   const usernameTaken = await prisma.user.findFirst({
-    where: { username: trimmedUsername, isVerified: true },
+    where: { username: trimmedUsername, NOT: { email } },
   })
   if (usernameTaken) {
     return NextResponse.json({ error: 'Username already taken. Choose another.' }, { status: 409 })
