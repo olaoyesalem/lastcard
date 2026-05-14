@@ -190,10 +190,6 @@ export function playCard(
   const top = topDiscard(s)
   if (!cardMatches(card, top)) return { type: 'error', message: 'Card does not match' }
 
-  if (player.hand.length === 1 && isActionCard(card)) {
-    return { type: 'error', message: 'Cannot go out on an action card' }
-  }
-
   player.hand.splice(cardIndex, 1)
   s.discardPile.push(card)
 
@@ -210,8 +206,10 @@ export function playCard(
     player.lastCardShown = false
   }
 
-  // Check-up: player emptied hand → resolve immediately
-  if (player.hand.length === 0) {
+  // Check-up: only when hand is empty AND the card was NOT an action card.
+  // Action cards played as last card resolve their effect first; the player
+  // then draws on their next turn (or extra turn) instead of winning outright.
+  if (player.hand.length === 0 && !isActionCard(card)) {
     Object.assign(s, triggerTender(s, 'checkup', events))
     return { type: 'ok', state: s, events }
   }
@@ -263,6 +261,16 @@ export function playCard(
         })
         s.extraTurnPending = true
       } else {
+        // Market emptied mid-gen. If player played gen as their last card (0 cards),
+        // give them 1 card from discard pile before tender so they can participate.
+        if (player.hand.length === 0 && s.discardPile.length > 1) {
+          const rescued = s.discardPile.splice(s.discardPile.length - 2, 1)[0]
+          player.hand.push(rescued)
+          events.push({
+            name: 'card_drawn',
+            payload: { userId: player.userId, newHandSize: 1, drawPileCount: 0 },
+          })
+        }
         return { type: 'ok', state: s, events }
       }
       break
@@ -304,9 +312,7 @@ export function autoPlay(state: GameState): PlayResult {
   const player = currentPlayer(state)
   const top = topDiscard(state)
 
-  const valid = player.hand.find(
-    (c) => cardMatches(c, top) && !(player.hand.length === 1 && isActionCard(c)),
-  )
+  const valid = player.hand.find((c) => cardMatches(c, top))
 
   if (valid) return playCard(state, player.userId, valid)
   return drawCard(state, player.userId)
