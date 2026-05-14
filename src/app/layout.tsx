@@ -9,6 +9,7 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://lastcard-production.up.railway.app'),
   title: 'LastCard — Nigerian Whot Staking Game',
   description: 'Play Whot, stake ₦200, win big. The premium Nigerian card game.',
   icons: {

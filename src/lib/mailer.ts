@@ -1,22 +1,10 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  family: 4,              // Force IPv4 — Railway doesn't support IPv6 outbound
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 8_000,
-  socketTimeout: 8_000,
-  greetingTimeout: 8_000,
-} as Parameters<typeof nodemailer.createTransport>[0])
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendOtp(email: string, otp: string): Promise<void> {
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"LastCard" <${process.env.SMTP_USER}>`,
+  const { error } = await resend.emails.send({
+    from: process.env.SMTP_FROM || 'LastCard <onboarding@resend.dev>',
     to: email,
     subject: 'Your LastCard verification code',
     html: `
@@ -29,4 +17,5 @@ export async function sendOtp(email: string, otp: string): Promise<void> {
       </div>
     `,
   })
+  if (error) throw new Error(error.message)
 }
