@@ -20,11 +20,11 @@ const g = globalThis as unknown as {
 
 if (!g._lcGameStates) g._lcGameStates = new Map()
 if (!g._lcTurnTimers) g._lcTurnTimers = new Map()
-if (!g._lcInitLocks)  g._lcInitLocks  = new Map()
+if (!g._lcInitLocks) g._lcInitLocks = new Map()
 
 const gameStates = g._lcGameStates
 const turnTimers = g._lcTurnTimers
-const initLocks  = g._lcInitLocks
+const initLocks = g._lcInitLocks
 
 function getIo(): SocketServer {
   if (!g._lcIo) throw new Error('Socket.IO not initialised yet')
@@ -54,7 +54,7 @@ async function ensureGameState(roomId: string): Promise<GameState | null> {
       lastCardShown: rp.lastCardShown,
     }))
 
-    const drawPile    = Array.isArray(room.drawPile)    ? (room.drawPile    as unknown as Card[]) : []
+    const drawPile = Array.isArray(room.drawPile) ? (room.drawPile as unknown as Card[]) : []
     const discardPile = Array.isArray(room.discardPile) ? (room.discardPile as unknown as Card[]) : []
 
     if (drawPile.length === 0 || discardPile.length === 0) {
@@ -102,10 +102,10 @@ export function initSocketServer(server: HTTPServer): SocketServer {
     const token = Array.isArray(rawToken) ? rawToken[0] : rawToken
     const user = typeof token === 'string' ? verifyToken(token) : null
     if (!user) return next(new Error('Unauthorized'))
-    socket.data.userId   = user.userId
-    socket.data.email    = user.email
+    socket.data.userId = user.userId
+    socket.data.email = user.email
     socket.data.username = user.username
-    socket.data.role     = user.role
+    socket.data.role = user.role
     next()
   })
 
@@ -174,7 +174,7 @@ export function initSocketServer(server: HTTPServer): SocketServer {
       pushHandUpdates(state, result.state)
     })
 
-    socket.on('disconnect', () => {})
+    socket.on('disconnect', () => { })
   })
 
   return io

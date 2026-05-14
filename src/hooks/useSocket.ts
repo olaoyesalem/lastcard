@@ -26,14 +26,14 @@ export interface DealingState {
 const DEAL_DURATION = 1800
 
 export function useSocket(roomId: string) {
-  const socketRef    = useRef<Socket | null>(null)
-  const dealingRef   = useRef(false)
+  const socketRef = useRef<Socket | null>(null)
+  const dealingRef = useRef(false)
   const pendingTurnRef = useRef<unknown>(null)
 
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null)
-  const [error,    setError]    = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [lastEvent, setLastEvent] = useState<{ name: string; payload: unknown } | null>(null)
-  const [dealing,  setDealing]  = useState<DealingState | null>(null)
+  const [dealing, setDealing] = useState<DealingState | null>(null)
 
   function applyTurnChange(payload: { currentPlayerId: string; drawPileCount: number; timerExpires: number }) {
     setSnapshot((prev) =>
@@ -64,9 +64,9 @@ export function useSocket(roomId: string) {
 
     socket.on('connect', () => socket.emit('join_room', roomId))
     socket.on('connect_error', (err) => pushError(err?.message || 'Socket connection failed'))
-    socket.on('game_state',   (data: GameSnapshot) => setSnapshot(data))
+    socket.on('game_state', (data: GameSnapshot) => setSnapshot(data))
     socket.on('game_started', (data: GameSnapshot) => setSnapshot(data))
-    socket.on('game_ready',   () => socket.emit('join_room', roomId))
+    socket.on('game_ready', () => socket.emit('join_room', roomId))
 
     socket.on('turn_change', (payload) => {
       if (dealingRef.current) {
@@ -143,8 +143,8 @@ export function useSocket(roomId: string) {
   }, [roomId])
 
   const rejoinRoom = useCallback(() => { socketRef.current?.emit('join_room', roomId) }, [roomId])
-  const playCard   = useCallback((card: Card) => { socketRef.current?.emit('play_card', { roomId, card }) }, [roomId])
-  const drawCard   = useCallback(() => { socketRef.current?.emit('draw_card', { roomId }) }, [roomId])
+  const playCard = useCallback((card: Card) => { socketRef.current?.emit('play_card', { roomId, card }) }, [roomId])
+  const drawCard = useCallback(() => { socketRef.current?.emit('draw_card', { roomId }) }, [roomId])
 
   return { snapshot, error, lastEvent, dealing, rejoinRoom, playCard, drawCard }
 }
