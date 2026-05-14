@@ -33,6 +33,18 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const [timer, setTimer] = useState<number | null>(null)
   const [handSnap, setHandSnap] = useState<Card[]>([])
 
+  const [isCompact, setIsCompact] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsCompact(
+      window.innerWidth > window.innerHeight && window.innerHeight < 480
+    )
+    check()
+    window.addEventListener('resize', check)
+    window.addEventListener('orientationchange', check)
+    return () => { window.removeEventListener('resize', check); window.removeEventListener('orientationchange', check) }
+  }, [])
+
   const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null)
   const [draggedCard, setDraggedCard] = useState<Card | null>(null)
   const [announce, setAnnounce] = useState<{ title: string; sub: string } | null>(null)
@@ -403,11 +415,11 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
               <div key={opp.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
                 {/* Avatar */}
                 <div style={{
-                  width: 46, height: 46, borderRadius: '50%',
+                  width: isCompact ? 34 : 46, height: isCompact ? 34 : 46, borderRadius: '50%',
                   background: isOppTurn ? 'var(--gold)' : 'var(--card-back)',
                   border: isOppTurn ? '2.5px solid var(--gold-lt)' : '2px solid rgba(245,239,224,.2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, fontWeight: 800,
+                  fontSize: isCompact ? 13 : 18, fontWeight: 800,
                   color: isOppTurn ? '#1a0d00' : 'var(--cream)',
                   boxShadow: isOppTurn ? '0 0 16px var(--gold-glow)' : 'none',
                   transition: 'all 200ms',
@@ -415,19 +427,19 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                   {opp.username[0].toUpperCase()}
                 </div>
                 {/* Username */}
-                <p style={{ fontSize: 11, color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isOppTurn ? 700 : 400 }}>
+                <p style={{ fontSize: isCompact ? 9 : 11, color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isOppTurn ? 700 : 400 }}>
                   {opp.username}
                 </p>
                 {/* Card count — big & bold */}
                 <div style={{
-                  fontSize: 36, fontWeight: 800, lineHeight: 1,
+                  fontSize: isCompact ? 26 : 36, fontWeight: 800, lineHeight: 1,
                   color: opp.cardCount <= 2 ? 'var(--illegal)' : opp.cardCount <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
                   fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
                 }}>
                   {opp.cardCount}
                 </div>
                 {/* Wallet balance */}
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--cream-60)', lineHeight: 1 }}>
+                <div style={{ fontSize: isCompact ? 9 : 10, fontWeight: 600, color: 'var(--cream-60)', lineHeight: 1 }}>
                   ₦{(opp.walletBalance ?? 0).toLocaleString()}
                 </div>
                 {opp.lastCardShown && (
@@ -445,7 +457,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
         {/* CENTER — Game table */}
         <div className="game-center" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 16, padding: '12px 16px', position: 'relative',
+          gap: isCompact ? 8 : 16, padding: isCompact ? '6px 12px' : '12px 16px', position: 'relative',
         }}>
           {/* Status pill */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -549,7 +561,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           )}
 
           {/* Piles */}
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: isCompact ? 14 : 24, alignItems: 'flex-end' }}>
             {/* Draw pile — stacked deck effect */}
             <div style={{ textAlign: 'center' }}>
               <div
@@ -566,7 +578,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                 {deckLayers >= 1 && (
                   <div style={{ position: 'absolute', top: -3, left: -2, right: 2, bottom: 3, borderRadius: 9, background: 'var(--card-back)', border: '1px solid rgba(245,239,224,.2)' }} />
                 )}
-                <CardBack size="lg" style={{
+                <CardBack size={isCompact ? 'sm' : 'lg'} style={{
                   position: 'relative',
                   outline: isMyTurn && !dealing ? '2px solid var(--gold)' : 'none',
                   outlineOffset: 2,
@@ -591,8 +603,8 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                 transition: 'outline 120ms ease',
               }}>
                 {top
-                  ? <WhotCard key={discardKey} card={top} size="xl" className="card-land" />
-                  : <CardBack size="xl" />}
+                  ? <WhotCard key={discardKey} card={top} size={isCompact ? 'md' : 'xl'} className="card-land" />
+                  : <CardBack size={isCompact ? 'md' : 'xl'} />}
               </div>
               <p style={{ fontSize: 11, color: 'var(--cream-60)', marginTop: 4 }}>
                 {draggedCard && isMyTurn ? 'Drop to play' : 'Discard pile'}
@@ -668,7 +680,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{
-                fontSize: 28, fontWeight: 800, lineHeight: 1,
+                fontSize: isCompact ? 20 : 28, fontWeight: 800, lineHeight: 1,
                 fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
                 color: handSnap.length <= 2 ? 'var(--illegal)' : handSnap.length <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
               }}>

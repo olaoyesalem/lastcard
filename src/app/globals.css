@@ -279,8 +279,11 @@ body {
 
 /* Compact landscape on small screens */
 @media (orientation: landscape) and (max-height: 460px) {
-  .game-opponents { min-height: 76px; max-height: 100px }
-  .game-hand      { flex: 0 0 160px }
+  .game-opponents { min-height: 66px; max-height: 80px }
+  .game-hand      { flex: 0 0 130px }
+  .game-center    { padding: 6px 12px !important }
+  .pile-gap       { gap: 16px !important }
+  .status-pill    { padding: 3px 10px !important; font-size: 11px !important }
 }
 
 /* ── Hide scrollbar on hand row ─────────────────────────── */
