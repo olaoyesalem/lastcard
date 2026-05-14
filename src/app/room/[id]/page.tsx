@@ -366,6 +366,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
   // ACTIVE GAME
   const opponents = snapshot?.players.filter((p) => p.userId !== user.id) ?? []
+  const mySnapshotPlayer = snapshot?.players.find((p) => p.userId === user.id)
   const validCards = top && !dealing
     ? handSnap.filter((c) => cardMatches(c, top))
     : []
@@ -424,6 +425,10 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                   fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
                 }}>
                   {opp.cardCount}
+                </div>
+                {/* Wallet balance */}
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--cream-60)', lineHeight: 1 }}>
+                  ₦{(opp.walletBalance ?? 0).toLocaleString()}
                 </div>
                 {opp.lastCardShown && (
                   <span style={{
@@ -659,18 +664,33 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           padding: '6px 0 0',
           overflow: 'hidden',
         }}>
-          {/* Card count — big and visible */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <span style={{
-              fontSize: 28, fontWeight: 800, lineHeight: 1,
-              fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
-              color: handSnap.length <= 2 ? 'var(--illegal)' : handSnap.length <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
-            }}>
-              {handSnap.length}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--cream-35)', fontWeight: 600 }}>
-              card{handSnap.length !== 1 ? 's' : ''}
-            </span>
+          {/* Card count + balance row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                fontSize: 28, fontWeight: 800, lineHeight: 1,
+                fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                color: handSnap.length <= 2 ? 'var(--illegal)' : handSnap.length <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
+              }}>
+                {handSnap.length}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--cream-35)', fontWeight: 600 }}>
+                card{handSnap.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {/* Divider */}
+            <span style={{ color: 'var(--cream-35)', fontSize: 14 }}>·</span>
+            {/* My balance */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ fontSize: 11, color: 'var(--cream-60)' }}>Balance</span>
+              <span style={{
+                fontSize: 15, fontWeight: 800,
+                fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                color: 'var(--gold-lt)',
+              }}>
+                ₦{(mySnapshotPlayer?.walletBalance ?? 0).toLocaleString()}
+              </span>
+            </div>
             {isMyTurn && (
               <span className="pulse-slow" style={{ fontSize: 11, color: 'var(--gold-lt)', fontWeight: 700 }}>
                 — your turn

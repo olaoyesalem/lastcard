@@ -128,6 +128,12 @@ export function initSocketServer(server: HTTPServer): SocketServer {
 
       if (state) {
         const player = state.players.find((p) => p.userId === userId)
+        // Fetch live balances so the UI shows up-to-date wallet values
+        const userRows = await prisma.user.findMany({
+          where: { id: { in: state.players.map((p) => p.userId) } },
+          select: { id: true, walletBalance: true },
+        })
+        const balanceMap = new Map(userRows.map((u) => [u.id, Number(u.walletBalance)]))
         socket.emit('game_state', {
           status: state.status,
           discardTop: state.discardPile[state.discardPile.length - 1],
@@ -138,6 +144,7 @@ export function initSocketServer(server: HTTPServer): SocketServer {
             username: p.username,
             cardCount: p.hand.length,
             lastCardShown: p.lastCardShown,
+            walletBalance: balanceMap.get(p.userId) ?? 0,
           })),
           yourHand: player?.hand ?? [],
           pot: state.pot,
@@ -187,6 +194,9 @@ export async function startGame(roomId: string): Promise<void> {
   })
   if (!room) return
 
+  // Build a balance map from the room's already-loaded user data
+  const balanceMap = new Map(room.players.map((rp) => [rp.userId, Number(rp.user.walletBalance)]))
+
   const players = room.players.map((rp) => ({
     userId: rp.userId,
     username: rp.user.username,
@@ -212,6 +222,7 @@ export async function startGame(roomId: string): Promise<void> {
         username: p.username,
         cardCount: p.hand.length,
         lastCardShown: false,
+        walletBalance: balanceMap.get(p.userId) ?? 0,
       })),
     })
   }

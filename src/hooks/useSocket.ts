@@ -10,7 +10,7 @@ export interface GameSnapshot {
   discardTop: Card | null
   currentPlayerId: string | null
   drawPileCount: number
-  players: { userId: string; username: string; cardCount: number; lastCardShown: boolean }[]
+  players: { userId: string; username: string; cardCount: number; lastCardShown: boolean; walletBalance: number }[]
   yourHand: Card[]
   pot: number
   timerExpires: number | null
