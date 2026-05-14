@@ -1,18 +1,22 @@
 import nodemailer from 'nodemailer'
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
+  host: 'smtp.gmail.com',
+  port: 587,
   secure: false,
+  family: 4,              // Force IPv4 — Railway doesn't support IPv6 outbound
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-})
+  connectionTimeout: 8_000,
+  socketTimeout: 8_000,
+  greetingTimeout: 8_000,
+} as Parameters<typeof nodemailer.createTransport>[0])
 
 export async function sendOtp(email: string, otp: string): Promise<void> {
   await transporter.sendMail({
-    from: `"LastCard" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM || `"LastCard" <${process.env.SMTP_USER}>`,
     to: email,
     subject: 'Your LastCard verification code',
     html: `

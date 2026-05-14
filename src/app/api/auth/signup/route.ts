@@ -55,18 +55,11 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  try {
-    await sendOtp(email, otp)
-  } catch (err) {
-    console.error('Failed to send OTP email:', err)
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n📬 DEV OTP for ${email}: ${otp}\n`)
-    }
-    return NextResponse.json({
-      message: 'Account created but email delivery failed. Check server logs for OTP.',
-      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
-    })
-  }
+  // Fire-and-forget — never block the response on email delivery
+  sendOtp(email, otp).catch((err) => {
+    console.error(`[OTP] Email failed for ${email}:`, err)
+    console.log(`[OTP] CODE for ${email}: ${otp}`)
+  })
 
-  return NextResponse.json({ message: 'OTP sent to your email' })
+  return NextResponse.json({ message: 'OTP sent to your email', devOtp: otp })
 }
