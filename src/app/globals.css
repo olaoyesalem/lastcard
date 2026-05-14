@@ -234,7 +234,8 @@ body {
   padding: 32px;
 }
 
-@media (orientation: portrait) and (max-width: 768px) {
+/* Portrait — always show rotate prompt, hide game */
+@media (orientation: portrait) {
   .game-screen .rotate-prompt { display: flex }
   .game-screen .game-inner   { display: none }
 }
@@ -250,10 +251,10 @@ body {
     #0F4C3A;
 }
 
-/* Cap play area — wider for landscape */
+/* Full width in landscape — no side strips */
 .game-inner {
   width: 100%;
-  max-width: 640px;
+  max-width: 100%;
   margin: 0 auto;
   height: 100%;
   display: flex;
@@ -270,7 +271,7 @@ body {
 .game-center {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .game-hand {
@@ -281,9 +282,11 @@ body {
 @media (orientation: landscape) and (max-height: 460px) {
   .game-opponents { min-height: 66px; max-height: 80px }
   .game-hand      { flex: 0 0 130px }
-  .game-center    { padding: 6px 12px !important }
-  .pile-gap       { gap: 16px !important }
-  .status-pill    { padding: 3px 10px !important; font-size: 11px !important }
+}
+
+/* Wide landscape — cap the inner width for large screens */
+@media (orientation: landscape) and (min-width: 900px) {
+  .game-inner { max-width: 800px }
 }
 
 /* ── Hide scrollbar on hand row ─────────────────────────── */
