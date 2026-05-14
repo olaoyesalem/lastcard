@@ -1,0 +1,17 @@
+{
+  "name": "LastCard",
+  "short_name": "LastCard",
+  "description": "Nigerian Whot Staking Game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F4C3A",
+  "theme_color": "#0F4C3A",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

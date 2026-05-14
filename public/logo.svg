@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Card shadow -->
+  <rect x="36" y="44" width="440" height="432" rx="52" fill="rgba(0,0,0,0.35)"/>
+  <!-- Card face -->
+  <rect x="28" y="32" width="440" height="432" rx="52" fill="#0F4C3A"/>
+  <!-- Gold border frame -->
+  <rect x="44" y="48" width="408" height="400" rx="40" fill="none" stroke="#C9942A" stroke-width="5" opacity="0.7"/>
+  <!-- Inner glow ring -->
+  <rect x="56" y="60" width="384" height="376" rx="32" fill="none" stroke="#E5B84A" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Star shape (Whot suit) top-left -->
+  <g transform="translate(80, 84) scale(0.55)" opacity="0.85">
+    <polygon points="24,0 30,17 48,17 34,27 39,44 24,34 9,44 14,27 0,17 18,17" fill="#C9942A"/>
+  </g>
+
+  <!-- Star shape bottom-right (rotated) -->
+  <g transform="translate(432, 428) scale(0.55) rotate(180, 24, 22)" opacity="0.85">
+    <polygon points="24,0 30,17 48,17 34,27 39,44 24,34 9,44 14,27 0,17 18,17" fill="#C9942A"/>
+  </g>
+
+  <!-- "L" letterform -->
+  <text x="124" y="318"
+        font-family="'Georgia', 'Times New Roman', serif"
+        font-weight="700"
+        font-size="196"
+        fill="#F5EFE0"
+        letter-spacing="-8">L</text>
+
+  <!-- "C" letterform with gold -->
+  <text x="246" y="318"
+        font-family="'Georgia', 'Times New Roman', serif"
+        font-weight="700"
+        font-size="196"
+        fill="#C9942A"
+        letter-spacing="-8">C</text>
+
+  <!-- Thin gold underline -->
+  <rect x="100" y="338" width="312" height="5" rx="2.5" fill="#C9942A" opacity="0.6"/>
+</svg>

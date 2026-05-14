@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  stake
+  winning
+  refund
+  admin_adjustment
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  rejected
+}
+
+enum RoomStatus {
+  waiting
+  ready_up
+  active
+  tender
+  resolved
+}
+
+enum TenderTrigger {
+  checkup
+  market_empty
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  username       String    @unique
+  passwordHash   String    @map("password_hash")
+  isVerified     Boolean   @default(false) @map("is_verified")
+  walletBalance  Decimal   @default(0) @db.Decimal(12, 2) @map("wallet_balance")
+  role           Role      @default(user)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  otpCodes            OtpCode[]
+  transactions        Transaction[]
+  createdRooms        Room[]         @relation("RoomCreator")
+  roomPlayers         RoomPlayer[]
+  tenderSubmissions   TenderSubmission[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String   @db.VarChar(6)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("otp_codes")
+}
+
+model Transaction {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  user      User              @relation(fields: [userId], references: [id])
+  type      TransactionType
+  amount    Decimal           @db.Decimal(12, 2)
+  status    TransactionStatus @default(pending)
+  reference String?
+  metadata  Json?
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@map("transactions")
+}
+
+model Room {
+  id                   String         @id @default(uuid())
+  inviteCode           String         @unique @map("invite_code") @db.VarChar(10)
+  creatorId            String         @map("creator_id")
+  creator              User           @relation("RoomCreator", fields: [creatorId], references: [id])
+  maxPlayers           Int            @map("max_players")
+  stakeAmount          Decimal        @default(200) @db.Decimal(12, 2) @map("stake_amount")
+  status               RoomStatus     @default(waiting)
+  pot                  Decimal        @default(0) @db.Decimal(12, 2)
+  houseFeePercent      Decimal        @default(5) @db.Decimal(5, 2) @map("house_fee_percent")
+  drawPile             Json           @default("[]") @map("draw_pile")
+  discardPile          Json           @default("[]") @map("discard_pile")
+  currentPlayerIndex   Int            @default(0) @map("current_player_index")
+  extraTurnPending     Boolean        @default(false) @map("extra_turn_pending")
+  skipNextPlayer       Boolean        @default(false) @map("skip_next_player")
+  turnTimerExpires     DateTime?      @map("turn_timer_expires")
+  tenderTrigger        TenderTrigger? @map("tender_trigger")
+  createdAt            DateTime       @default(now()) @map("created_at")
+
+  players              RoomPlayer[]
+  tenderSubmissions    TenderSubmission[]
+
+  @@map("rooms")
+}
+
+model RoomPlayer {
+  id             String   @id @default(uuid())
+  roomId         String   @map("room_id")
+  room           Room     @relation(fields: [roomId], references: [id])
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id])
+  hand           Json     @default("[]")
+  isReady        Boolean  @default(false) @map("is_ready")
+  lastCardShown  Boolean  @default(false) @map("last_card_shown")
+  stakeLocked    Decimal  @default(200) @db.Decimal(12, 2) @map("stake_locked")
+  joinedAt       DateTime @default(now()) @map("joined_at")
+
+  @@unique([roomId, userId])
+  @@map("room_players")
+}
+
+model TenderSubmission {
+  id      String  @id @default(uuid())
+  roomId  String  @map("room_id")
+  room    Room    @relation(fields: [roomId], references: [id])
+  userId  String  @map("user_id")
+  user    User    @relation(fields: [userId], references: [id])
+  card    Json
+  rank    Int?
+
+  @@unique([roomId, userId])
+  @@map("tender_submissions")
+}
+
+model PrizeSplit {
+  id              String @id @default(uuid())
+  numParticipants Int    @unique @map("num_participants")
+  splitJson       Json   @map("split_json")
+
+  @@map("prize_splits")
+}
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
