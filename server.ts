@@ -4,7 +4,7 @@ import next from 'next'
 import { initSocketServer } from './src/server/socketServer'
 
 const dev = process.env.NODE_ENV !== 'production'
-const hostname = 'localhost'
+const hostname = '0.0.0.0'
 const port = parseInt(process.env.PORT || '3000')
 const socketPort = parseInt(process.env.SOCKET_PORT || (dev ? '3001' : String(port)))
 
@@ -17,12 +17,12 @@ app.prepare().then(() => {
   initSocketServer(socketServer)
 
   if (socketPort !== port) {
-    socketServer.listen(socketPort, () => {
-      console.log(`> Socket server ready on http://${hostname}:${socketPort}`)
+    socketServer.listen(socketPort, hostname, () => {
+      console.log(`> Socket server ready on port ${socketPort}`)
     })
   }
 
-  httpServer.listen(port, () => {
-    console.log(`> LastCard ready on http://${hostname}:${port}`)
+  httpServer.listen(port, hostname, () => {
+    console.log(`> LastCard ready on port ${port}`)
   })
 })
