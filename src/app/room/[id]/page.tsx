@@ -48,12 +48,16 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   }, [])
 
   const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null)
+  const [selectedCardIdx, setSelectedCardIdx] = useState<number | null>(null)
   const [draggedCard, setDraggedCard] = useState<Card | null>(null)
   const [announce, setAnnounce] = useState<{ title: string; sub: string } | null>(null)
+  const [nextRound, setNextRound] = useState(false)
   const [discardKey, setDiscardKey] = useState(0)
   const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { snapshot, error, lastEvent, dealing, rejoinRoom, playCard, drawCard } = useSocket(roomId)
+  const { snapshot, error, lastEvent, dealing, rejoinRoom, playCard, drawCard, roundComplete } = useSocket(roomId)
+  const roundCompleteRef = useRef(roundComplete)
+  useEffect(() => { roundCompleteRef.current = roundComplete }, [roundComplete])
 
   const showAnnounce = useCallback((title: string, sub: string) => {
     if (announceTimer.current) clearTimeout(announceTimer.current)
@@ -73,6 +77,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   useEffect(() => {
     if (snapshot?.yourHand) setHandSnap(snapshot.yourHand)
   }, [snapshot?.yourHand])
+
+  // Clear selected card when turn changes
+  useEffect(() => { setSelectedCardIdx(null) }, [snapshot?.currentPlayerId])
 
   // Poll room info while in lobby (every 2s to pick up new players + ready status)
   useEffect(() => {
@@ -102,16 +109,30 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
     if (lastEvent.name === 'tender_result') {
       const { rankings } = lastEvent.payload as { rankings: TenderResult[]; potSplit: unknown[] }
-      // Step 1: show in-game table reveal for 2.5s
       setGameReveal(rankings)
       setTimeout(() => {
         setGameReveal(null)
-        // Step 2: full card-flip reveal screen
         setRevealData(rankings)
         const maxCards = Math.max(...rankings.map((r) => r.hand.length))
         const holdMs = rankings.length * 900 + maxCards * 100 + 2500
-        setTimeout(() => { setTenderResults(rankings); setRevealData(null) }, holdMs)
+        setTimeout(() => {
+          setRevealData(null)
+          if (roundCompleteRef.current) {
+            // auto-replay: show "next round" interstitial, game_started will clear it
+            setNextRound(true)
+          } else {
+            setTenderResults(rankings)
+          }
+        }, holdMs)
       }, 2500)
+    }
+
+    if (lastEvent.name === 'game_started') {
+      setTenderResults(null)
+      setRevealData(null)
+      setGameReveal(null)
+      setNextRound(false)
+      setSelectedCardIdx(null)
     }
 
     if (lastEvent.name === 'card_played') {
@@ -290,6 +311,27 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             </div>
           )
         })}
+      </div>
+    )
+  }
+
+  // NEXT ROUND INTERSTITIAL — auto-replay in progress
+  if (nextRound) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,20,14,.7) 100%), #0F4C3A',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        gap: 20, padding: 24,
+      }}>
+        <div className="pulse-slow" style={{ fontSize: 64 }}>🃏</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--gold-lt)', textAlign: 'center' }}>
+          Next Round
+        </div>
+        <div style={{ fontSize: 14, color: 'var(--cream-60)', textAlign: 'center' }}>
+          Shuffling and dealing…
+        </div>
       </div>
     )
   }
@@ -734,7 +776,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             gap: 0,
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
-          }}>
+          }}
+          onClick={() => setSelectedCardIdx(null)}
+          >
             {handSnap.map((card, i) => {
               const total = handSnap.length
               const midIndex = (total - 1) / 2
@@ -750,6 +794,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                 ? (total <= 3 ? 6 : total <= 6 ? -8 : total <= 10 ? -20 : -26)
                 : (total <= 4 ? 6 : total <= 7 ? -4 : total <= 10 ? -10 : -16)
 
+              const isSelected = selectedCardIdx === i
+              const isLifted = isHov || isSelected
+
               return (
                 <div
                   key={`${card.suit}-${card.number}-${i}`}
@@ -757,28 +804,38 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                   style={{
                     flexShrink: 0,
                     marginLeft: i > 0 ? overlap : 0,
-                    transform: `rotate(${rotation}deg) translateY(${isHov ? (isPortrait ? -28 : isCompact ? -20 : -40) : arcY}px)`,
+                    transform: `rotate(${rotation}deg) translateY(${isLifted ? (isPortrait ? -28 : isCompact ? -20 : -40) : arcY}px)`,
                     transformOrigin: 'bottom center',
                     transition: 'transform 180ms cubic-bezier(.22,.68,0,1.2)',
-                    zIndex: isHov ? 200 : i + 1,
+                    zIndex: isLifted ? 200 : i + 1,
                     position: 'relative',
                     animationDelay: `${i * 40}ms`,
                     cursor: isPlayable ? 'pointer' : 'default',
                   }}
                   onMouseEnter={() => setHoveredCardIdx(i)}
                   onMouseLeave={() => setHoveredCardIdx(null)}
-                  onTouchStart={() => setHoveredCardIdx(i)}
-                  onTouchEnd={() => setHoveredCardIdx(null)}
                   draggable={isPlayable}
                   onDragStart={(e) => { setDraggedCard(card); e.dataTransfer.effectAllowed = 'move' }}
                   onDragEnd={() => setDraggedCard(null)}
-                  onClick={() => handlePlayCard(card)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (!isPlayable) { setSelectedCardIdx(null); return }
+                    if (isSelected) {
+                      handlePlayCard(card)
+                      setSelectedCardIdx(null)
+                    } else {
+                      setSelectedCardIdx(i)
+                    }
+                  }}
                 >
                   <WhotCard
                     card={card}
                     playable={isPlayable}
                     disabled={isMyTurn && !isPlayable}
                     size={isPortrait || isCompact ? 'sm' : 'md'}
+                    style={isSelected ? {
+                      boxShadow: '0 0 0 3px var(--gold), 0 8px 28px var(--gold-glow)',
+                    } : undefined}
                   />
                 </div>
               )

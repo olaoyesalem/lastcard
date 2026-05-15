@@ -1,7 +1,7 @@
 import type { Server as HTTPServer } from 'http'
 import { Server as SocketServer } from 'socket.io'
 import { verifyToken } from '@/lib/auth'
-import type { GameState, Card } from '@/types/game'
+import type { GameState, Card, TenderResult } from '@/types/game'
 import {
   initGameState,
   playCard,
@@ -257,8 +257,8 @@ function broadcastEvents(roomId: string, state: GameState, events: GameEvent[]):
       io.to(roomId).emit('turn_change', event.payload)
     } else if (event.name === 'tender_result') {
       io.to(roomId).emit('tender_result', event.payload)
-      io.to(roomId).emit('game_over', { resolved: true })
-      handleResolution(roomId, event.payload.potSplit)
+      // game_over emitted inside handleResolution only if no replay
+      handleResolution(roomId, event.payload.rankings, event.payload.potSplit)
     }
   }
 }
@@ -295,8 +295,18 @@ function clearTurnTimer(roomId: string): void {
 
 async function handleResolution(
   roomId: string,
+  rankings: TenderResult[],
   potSplit: { userId: string; amount: number }[],
 ): Promise<void> {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { players: true },
+  })
+  if (!room) return
+
+  const stake = Number(room.stakeAmount)
+
+  // 1. Pay out winnings
   await prisma.$transaction(async (tx) => {
     for (const payout of potSplit) {
       if (payout.amount <= 0) continue
@@ -314,8 +324,103 @@ async function handleResolution(
         },
       })
     }
-    await tx.room.update({ where: { id: roomId }, data: { status: 'resolved' } })
   })
+
+  // 2. Check if everyone can still afford another round
+  const playerIds = room.players.map((p) => p.userId)
+  const users = await prisma.user.findMany({
+    where: { id: { in: playerIds } },
+    select: { id: true, walletBalance: true },
+  })
+  const allCanAfford = users.every((u) => Number(u.walletBalance) >= stake)
+
+  if (allCanAfford) {
+    // 3a. Auto-replay — deduct stakes and reset room
+    await prisma.$transaction(async (tx) => {
+      for (const u of users) {
+        await tx.user.update({
+          where: { id: u.id },
+          data: { walletBalance: { decrement: stake } },
+        })
+        await tx.transaction.create({
+          data: {
+            userId: u.id,
+            type: 'stake',
+            amount: stake,
+            status: 'completed',
+            metadata: { roomId, replay: true },
+          },
+        })
+      }
+      await tx.room.update({
+        where: { id: roomId },
+        data: {
+          pot: stake * users.length,
+          status: 'active',
+          drawPile: [],
+          discardPile: [],
+          currentPlayerIndex: 0,
+          extraTurnPending: false,
+          skipNextPlayer: false,
+          tenderTrigger: null,
+          turnTimerExpires: null,
+        },
+      })
+      await tx.roomPlayer.updateMany({
+        where: { roomId },
+        data: { hand: [], lastCardShown: false },
+      })
+    })
+
+    // Tell clients a new round is coming (they can show a countdown)
+    getIo().to(roomId).emit('round_complete', { rankings })
+
+    // Deal new round after 6 seconds (client reveals take ~5–6s)
+    setTimeout(async () => {
+      const freshRoom = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { players: { include: { user: true } } },
+      })
+      if (!freshRoom) return
+
+      const balanceMap = new Map(freshRoom.players.map((rp) => [rp.userId, Number(rp.user.walletBalance)]))
+      const players = freshRoom.players.map((rp) => ({ userId: rp.userId, username: rp.user.username }))
+
+      const newState = initGameState(roomId, players, Number(freshRoom.pot), Number(freshRoom.houseFeePercent))
+      gameStates.set(roomId, newState)
+      clearTurnTimer(roomId)
+
+      const allSockets = await getIo().in(roomId).fetchSockets()
+      for (const player of newState.players) {
+        const playerSocket = allSockets.find((s: { data: { userId: string } }) => s.data.userId === player.userId)
+        playerSocket?.emit('game_started', {
+          status: 'active',
+          yourHand: player.hand,
+          discardTop: newState.discardPile[newState.discardPile.length - 1],
+          currentPlayerId: newState.players[newState.currentPlayerIndex].userId,
+          drawPileCount: newState.drawPile.length,
+          pot: newState.pot,
+          timerExpires: newState.turnTimerExpires,
+          players: newState.players.map((p) => ({
+            userId: p.userId,
+            username: p.username,
+            cardCount: p.hand.length,
+            lastCardShown: false,
+            walletBalance: balanceMap.get(p.userId) ?? 0,
+          })),
+        })
+      }
+
+      getIo().to(roomId).emit('game_ready', {})
+      startTurnTimer(roomId, newState)
+      persistGameState(roomId, newState)
+    }, 6000)
+
+  } else {
+    // 3b. Someone can't afford another round — game over
+    await prisma.room.update({ where: { id: roomId }, data: { status: 'resolved' } })
+    getIo().to(roomId).emit('game_over', { resolved: true })
+  }
 }
 
 async function persistGameState(roomId: string, state: GameState): Promise<void> {

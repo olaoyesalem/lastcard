@@ -34,6 +34,7 @@ export function useSocket(roomId: string) {
   const [error, setError] = useState<string | null>(null)
   const [lastEvent, setLastEvent] = useState<{ name: string; payload: unknown } | null>(null)
   const [dealing, setDealing] = useState<DealingState | null>(null)
+  const [roundComplete, setRoundComplete] = useState(false)
 
   function applyTurnChange(payload: { currentPlayerId: string; drawPileCount: number; timerExpires: number }) {
     setSnapshot((prev) =>
@@ -65,7 +66,15 @@ export function useSocket(roomId: string) {
     socket.on('connect', () => socket.emit('join_room', roomId))
     socket.on('connect_error', (err) => pushError(err?.message || 'Socket connection failed'))
     socket.on('game_state', (data: GameSnapshot) => setSnapshot(data))
-    socket.on('game_started', (data: GameSnapshot) => setSnapshot(data))
+    socket.on('game_started', (data: GameSnapshot) => {
+      setSnapshot(data)
+      setRoundComplete(false)
+      setLastEvent({ name: 'game_started', payload: data })
+    })
+    socket.on('round_complete', (payload: unknown) => {
+      setRoundComplete(true)
+      setLastEvent({ name: 'round_complete', payload })
+    })
     socket.on('game_ready', () => socket.emit('join_room', roomId))
 
     socket.on('turn_change', (payload) => {
@@ -146,5 +155,5 @@ export function useSocket(roomId: string) {
   const playCard = useCallback((card: Card) => { socketRef.current?.emit('play_card', { roomId, card }) }, [roomId])
   const drawCard = useCallback(() => { socketRef.current?.emit('draw_card', { roomId }) }, [roomId])
 
-  return { snapshot, error, lastEvent, dealing, rejoinRoom, playCard, drawCard }
+  return { snapshot, error, lastEvent, dealing, rejoinRoom, playCard, drawCard, roundComplete }
 }
