@@ -503,6 +503,16 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                 }}>
                   {opp.username}
                 </span>
+                {/* Balance */}
+                <span style={{
+                  fontSize: isPortrait ? 9 : 8,
+                  color: 'var(--cream-35)',
+                  fontWeight: 600,
+                  fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                  lineHeight: 1,
+                }}>
+                  ₦{(opp.walletBalance ?? 0).toLocaleString()}
+                </span>
               </div>
             )
           })}
