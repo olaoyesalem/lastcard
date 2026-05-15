@@ -218,27 +218,8 @@ body {
 
 /* ── Game board — 3-row flex ─────────────────────────────── */
 
-/* Rotate prompt — full screen on mobile portrait */
-.rotate-prompt {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: #0F4C3A;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  color: var(--cream);
-  text-align: center;
-  padding: 32px;
-}
-
-/* Portrait — always show rotate prompt, hide game */
-@media (orientation: portrait) {
-  .game-screen .rotate-prompt { display: flex }
-  .game-screen .game-inner   { display: none }
-}
+/* Portrait is now fully supported */
+.rotate-prompt { display: none }
 
 .game-screen {
   width: 100dvw;
@@ -251,7 +232,6 @@ body {
     #0F4C3A;
 }
 
-/* Full width in landscape — no side strips */
 .game-inner {
   width: 100%;
   max-width: 100%;
@@ -262,29 +242,11 @@ body {
   position: relative;
 }
 
-.game-opponents {
-  flex: 0 0 auto;
-  min-height: 90px;
-  max-height: 130px;
-}
+.game-opponents { flex: 0 0 auto }
+.game-center    { flex: 1; min-height: 0; overflow: visible }
+.game-hand      { flex: 0 0 auto }
 
-.game-center {
-  flex: 1;
-  min-height: 0;
-  overflow: visible;
-}
-
-.game-hand {
-  flex: 0 0 200px;
-}
-
-/* Compact landscape on small screens */
-@media (orientation: landscape) and (max-height: 460px) {
-  .game-opponents { min-height: 66px; max-height: 80px }
-  .game-hand      { flex: 0 0 130px }
-}
-
-/* Wide landscape — cap the inner width for large screens */
+/* Wide landscape — cap width for large screens */
 @media (orientation: landscape) and (min-width: 900px) {
   .game-inner { max-width: 800px }
 }

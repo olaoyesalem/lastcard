@@ -34,11 +34,13 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const [handSnap, setHandSnap] = useState<Card[]>([])
 
   const [isCompact, setIsCompact] = useState(false)
+  const [isPortrait, setIsPortrait] = useState(false)
 
   useEffect(() => {
-    const check = () => setIsCompact(
-      window.innerWidth > window.innerHeight && window.innerHeight < 480
-    )
+    const check = () => {
+      setIsCompact(window.innerWidth > window.innerHeight && window.innerHeight < 480)
+      setIsPortrait(window.innerHeight > window.innerWidth)
+    }
     check()
     window.addEventListener('resize', check)
     window.addEventListener('orientationchange', check)
@@ -387,68 +389,78 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <div className="game-screen">
-      {/* Rotate to landscape prompt — hidden by CSS in landscape */}
-      <div className="rotate-prompt">
-        <div style={{ fontSize: 56 }}>↻</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--gold-lt)' }}>Rotate your phone</div>
-        <div style={{ fontSize: 14, color: 'var(--cream-60)', maxWidth: 240 }}>
-          LastCard plays best in landscape mode. Turn your phone sideways to play.
-        </div>
-      </div>
-
       <div className="game-inner">
 
-        {/* TOP — Opponents strip */}
+        {/* TOP — Opponent dots */}
         <div className="game-opponents" style={{
-          background: 'rgba(5,20,14,.45)',
-          borderBottom: '1px solid rgba(245,239,224,.08)',
+          background: 'rgba(5,20,14,.5)',
+          borderBottom: '1px solid rgba(245,239,224,.07)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 28,
-          padding: '8px 20px',
-          overflowX: 'auto',
+          flexWrap: 'wrap',
+          gap: isPortrait ? 14 : 20,
+          padding: isPortrait ? '12px 20px' : '8px 20px',
         }}>
           {opponents.map((opp) => {
             const isOppTurn = opp.userId === snapshot?.currentPlayerId
+            const dotSize = isCompact ? 36 : isPortrait ? 52 : 46
+            const countColor = opp.cardCount <= 2 ? 'var(--illegal)' : opp.cardCount <= 4 ? 'var(--gold-lt)' : 'var(--cream)'
             return (
-              <div key={opp.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                {/* Avatar */}
+              <div key={opp.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {/* Circle dot */}
                 <div style={{
-                  width: isCompact ? 34 : 46, height: isCompact ? 34 : 46, borderRadius: '50%',
-                  background: isOppTurn ? 'var(--gold)' : 'var(--card-back)',
-                  border: isOppTurn ? '2.5px solid var(--gold-lt)' : '2px solid rgba(245,239,224,.2)',
+                  width: dotSize, height: dotSize, borderRadius: '50%',
+                  background: 'rgba(5,20,14,.7)',
+                  border: isOppTurn ? '2.5px solid var(--gold)' : '2px solid rgba(245,239,224,.18)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: isCompact ? 13 : 18, fontWeight: 800,
-                  color: isOppTurn ? '#1a0d00' : 'var(--cream)',
-                  boxShadow: isOppTurn ? '0 0 16px var(--gold-glow)' : 'none',
+                  boxShadow: isOppTurn ? '0 0 14px var(--gold-glow)' : 'none',
                   transition: 'all 200ms',
+                  position: 'relative',
                 }}>
-                  {opp.username[0].toUpperCase()}
+                  {/* Initial */}
+                  <span style={{
+                    fontSize: isCompact ? 13 : isPortrait ? 18 : 16,
+                    fontWeight: 800, color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)',
+                  }}>
+                    {opp.username[0].toUpperCase()}
+                  </span>
+                  {/* Card count badge */}
+                  <div style={{
+                    position: 'absolute', top: -5, right: -5,
+                    minWidth: isPortrait ? 20 : 17, height: isPortrait ? 20 : 17,
+                    borderRadius: 99,
+                    background: isOppTurn ? 'var(--gold)' : 'rgba(10,26,18,.9)',
+                    border: `1.5px solid ${isOppTurn ? 'var(--gold-lt)' : 'rgba(245,239,224,.2)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: isPortrait ? 10 : 9, fontWeight: 800,
+                    fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                    color: isOppTurn ? '#1a0d00' : countColor,
+                    padding: '0 3px',
+                  }}>
+                    {opp.cardCount}
+                  </div>
+                  {/* LAST card red dot */}
+                  {opp.lastCardShown && (
+                    <div style={{
+                      position: 'absolute', bottom: -3, right: -3,
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: 'var(--illegal)',
+                      border: '1.5px solid var(--table)',
+                    }} />
+                  )}
                 </div>
                 {/* Username */}
-                <p style={{ fontSize: isCompact ? 9 : 11, color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isOppTurn ? 700 : 400 }}>
-                  {opp.username}
-                </p>
-                {/* Card count — big & bold */}
-                <div style={{
-                  fontSize: isCompact ? 26 : 36, fontWeight: 800, lineHeight: 1,
-                  color: opp.cardCount <= 2 ? 'var(--illegal)' : opp.cardCount <= 4 ? 'var(--gold-lt)' : 'var(--cream)',
-                  fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+                <span style={{
+                  fontSize: isPortrait ? 10 : 9,
+                  color: isOppTurn ? 'var(--gold-lt)' : 'var(--cream-60)',
+                  maxWidth: dotSize + 8,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  fontWeight: isOppTurn ? 700 : 400,
+                  lineHeight: 1,
                 }}>
-                  {opp.cardCount}
-                </div>
-                {/* Wallet balance */}
-                <div style={{ fontSize: isCompact ? 9 : 10, fontWeight: 600, color: 'var(--cream-60)', lineHeight: 1 }}>
-                  ₦{(opp.walletBalance ?? 0).toLocaleString()}
-                </div>
-                {opp.lastCardShown && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, color: '#fff',
-                    background: 'var(--illegal)', borderRadius: 4,
-                    padding: '1px 5px', letterSpacing: .5,
-                  }}>LAST!</span>
-                )}
+                  {opp.username}
+                </span>
               </div>
             )
           })}
@@ -673,8 +685,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '6px 0 0',
-          overflow: 'hidden',
+          padding: isPortrait ? '8px 0 0' : '6px 0 0',
         }}>
           {/* Card count + balance row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
@@ -718,8 +729,8 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             overflowY: 'visible',
             display: 'flex',
             alignItems: 'flex-end',
-            justifyContent: handSnap.length <= 5 ? 'center' : 'flex-start',
-            padding: '20px 20px 8px',
+            justifyContent: 'center',
+            padding: isPortrait ? '12px 16px 10px' : isCompact ? '4px 16px 2px' : '20px 20px 8px',
             gap: 0,
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
@@ -727,13 +738,17 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             {handSnap.map((card, i) => {
               const total = handSnap.length
               const midIndex = (total - 1) / 2
-              const maxDeg = Math.min(10, total * 1.5)
+              const maxDeg = isPortrait
+                ? Math.min(28, total * 2.8)
+                : Math.min(10, total * 1.5)
               const rotation = total > 1 ? ((i - midIndex) / (midIndex || 1)) * maxDeg : 0
-              const arcY = Math.abs(i - midIndex) * 2.5
+              const arcY = Math.abs(i - midIndex) * (isPortrait ? 3.5 : isCompact ? 1 : 2.5)
               const isHov = hoveredCardIdx === i
               const isPlayable = isMyTurn && validCards.some((c) => c.suit === card.suit && c.number === card.number)
-              // Adaptive overlap: spread cards more when few, tighter when many
-              const overlap = total <= 4 ? 6 : total <= 7 ? -4 : total <= 10 ? -10 : -16
+              // Portrait: tighter overlap so all cards fan visibly; landscape: spread more
+              const overlap = isPortrait
+                ? (total <= 3 ? 6 : total <= 6 ? -8 : total <= 10 ? -20 : -26)
+                : (total <= 4 ? 6 : total <= 7 ? -4 : total <= 10 ? -10 : -16)
 
               return (
                 <div
@@ -742,7 +757,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                   style={{
                     flexShrink: 0,
                     marginLeft: i > 0 ? overlap : 0,
-                    transform: `rotate(${rotation}deg) translateY(${isHov ? -40 : arcY}px)`,
+                    transform: `rotate(${rotation}deg) translateY(${isHov ? (isPortrait ? -28 : isCompact ? -20 : -40) : arcY}px)`,
                     transformOrigin: 'bottom center',
                     transition: 'transform 180ms cubic-bezier(.22,.68,0,1.2)',
                     zIndex: isHov ? 200 : i + 1,
@@ -763,7 +778,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
                     card={card}
                     playable={isPlayable}
                     disabled={isMyTurn && !isPlayable}
-                    size="md"
+                    size={isPortrait || isCompact ? 'sm' : 'md'}
                   />
                 </div>
               )
