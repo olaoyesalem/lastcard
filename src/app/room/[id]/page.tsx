@@ -191,6 +191,15 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   function handlePlayCard(card: Card) {
     const top = snapshot?.discardTop
     if (!top || !cardMatches(card, top)) return
+    // Optimistically remove the played card so it doesn't flash as re-playable
+    // while waiting for the server's hand_update
+    setHandSnap((prev) => {
+      const idx = prev.findIndex((c) => c.suit === card.suit && c.number === card.number)
+      if (idx === -1) return prev
+      const next = [...prev]
+      next.splice(idx, 1)
+      return next
+    })
     playCard(card)
   }
 
@@ -809,7 +818,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
               return (
                 <div
-                  key={`${card.suit}-${card.number}-${i}`}
+                  key={`${card.suit}-${card.number}`}
                   className="deal-in"
                   style={{
                     flexShrink: 0,

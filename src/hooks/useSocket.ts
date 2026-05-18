@@ -67,6 +67,10 @@ export function useSocket(roomId: string) {
     socket.on('connect_error', (err) => pushError(err?.message || 'Socket connection failed'))
     socket.on('game_state', (data: GameSnapshot) => setSnapshot(data))
     socket.on('game_started', (data: GameSnapshot) => {
+      // Clear any stale dealing state from the previous round
+      dealingRef.current = false
+      pendingTurnRef.current = null
+      setDealing(null)
       setSnapshot(data)
       setRoundComplete(false)
       setLastEvent({ name: 'game_started', payload: data })
@@ -138,6 +142,10 @@ export function useSocket(roomId: string) {
     })
 
     socket.on('tender_result', (payload) => {
+      // Round is over — stop any pending dealing animation
+      dealingRef.current = false
+      pendingTurnRef.current = null
+      setDealing(null)
       setSnapshot((prev) => prev ? { ...prev, status: 'resolved' } : prev)
       setLastEvent({ name: 'tender_result', payload })
     })

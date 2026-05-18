@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { maxPlayers } = await req.json()
-  if (!maxPlayers || maxPlayers < 2 || maxPlayers > 16) {
-    return NextResponse.json({ error: 'maxPlayers must be 2-16' }, { status: 400 })
+  if (!maxPlayers || maxPlayers < 2 || maxPlayers > 11) {
+    return NextResponse.json({ error: 'maxPlayers must be 2-11' }, { status: 400 })
   }
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.userId } })
